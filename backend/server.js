@@ -2,11 +2,16 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const { rateLimit } = require("express-rate-limit");
 const AppError = require("./utils/AppError");
 const generateRouter = require("./routes/generate");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Behind Render's proxy: trust one hop so req.ip is the real visitor IP
+// (needed for per-IP rate limiting to work correctly).
+app.set("trust proxy", 1);
 
 // Middleware
 app.use(
@@ -16,7 +21,24 @@ app.use(
 );
 app.use(express.json({ limit: "100kb" }));
 
-// Test route
+// Limit AI generation per IP so a public deployment can't burn the API quota.
+const generateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 20, // requests per IP per window
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: {
+        code: "RATE_LIMITED",
+        message: "Too many requests from your network. Please wait a few minutes and try again.",
+      },
+    });
+  },
+});
+
+// Test route (also usable as a health check)
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -25,7 +47,7 @@ app.get("/", (req, res) => {
 });
 
 // API routes
-app.use("/api/generate", generateRouter);
+app.use("/api/generate", generateLimiter, generateRouter);
 
 // 404 for unknown routes
 app.use((req, res) => {
@@ -67,12 +89,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-// Start server
+// Start server (PORT is provided by Render; we bind to all interfaces by default)
 app.listen(PORT, (err) => {
   if (err) {
     console.error(`Failed to start on port ${PORT}:`, err.message);
     process.exit(1);
   }
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

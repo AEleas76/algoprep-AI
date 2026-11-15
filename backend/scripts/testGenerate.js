@@ -1,5 +1,7 @@
 // Usage: node scripts/testGenerate.js <preset> ["your topic"]
 // Presets: ok | quiz | flashcards | empty-topic | bad-mode | bad-json | no-body
+// Test a deployed server:  $env:API_URL="https://your-api.onrender.com"; node scripts/testGenerate.js ok
+const API_URL = process.env.API_URL || "http://localhost:5000";
 const preset = process.argv[2] || "ok";
 const topic = process.argv.slice(3).join(" ") || "Binary search trees: insertion, deletion and search";
 
@@ -20,7 +22,7 @@ if (!(preset in bodies)) {
 
 (async () => {
   const started = Date.now();
-  const res = await fetch("http://localhost:5000/api/generate", {
+  const res = await fetch(`${API_URL}/api/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: bodies[preset],
