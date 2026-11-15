@@ -327,4 +327,4 @@ Frontend: generate each mode, flip and rate flashcards, answer quizzes correctly
 
 ## Author
 
-[Your name], [your college], [GitHub profile link]
+[Abu Eleas], [NIT Silchar], [https://github.com/AEleas76]
