@@ -1,4 +1,5 @@
 import Flashcard from "../components/Flashcard";
+import Quiz from "../components/Quiz";
 import "./StudySession.css";
 
 function StudySession({ data }) {
@@ -18,16 +19,7 @@ function StudySession({ data }) {
       </div>
 
       {showFlashcards && <Flashcard cards={data.flashcards} />}
-
-      {/* TEMPORARY: replaced by the interactive Quiz component in Step 4 */}
-      {showQuiz && (
-        <div className="status-card">
-          <div>
-            <strong>Quiz ready</strong>
-            <p>{data.quiz.length} questions generated. The interactive quiz is added in the next step.</p>
-          </div>
-        </div>
-      )}
+      {showQuiz && <Quiz questions={data.quiz} />}
 
     </div>
   );
