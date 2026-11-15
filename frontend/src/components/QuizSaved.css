@@ -1,0 +1,14 @@
+.quiz-saved {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  background: #211b3c;
+  border: 1px solid #7c3aed;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #cbd5e1;
+}

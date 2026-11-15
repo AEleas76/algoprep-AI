@@ -8,8 +8,8 @@ const RATINGS = [
   { value: "hard", label: "Hard" },
 ];
 
-// State resets when a new study set arrives because the parent passes a `key`.
-function Flashcard({ cards }) {
+// State resets when a different session opens because the parent passes a `key`.
+function Flashcard({ cards, initialRatings = {}, onRatingsChange }) {
   const allIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const cardsById = useMemo(
     () => Object.fromEntries(cards.map((c) => [c.id, c])),
@@ -20,7 +20,14 @@ function Flashcard({ cards }) {
   const [isRetest, setIsRetest] = useState(false);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [ratings, setRatings] = useState({}); // cardId -> "easy" | "medium" | "hard"
+  const [ratings, setRatings] = useState(() => {
+    // Ignore saved ratings for cards that don't exist in this set.
+    const valid = {};
+    cards.forEach((c) => {
+      if (initialRatings[c.id]) valid[c.id] = initialRatings[c.id];
+    });
+    return valid;
+  }); // cardId -> "easy" | "medium" | "hard"
 
   // Empty state: nothing to study.
   if (cards.length === 0) {
@@ -51,24 +58,28 @@ function Flashcard({ cards }) {
     setFlipped(false);
   };
 
+  // Single place where ratings change, so they always get reported for saving.
+  const commitRatings = (next) => {
+    setRatings(next);
+    onRatingsChange?.(next);
+  };
+
   const rate = (value) => {
-    setRatings((prev) => ({ ...prev, [current.id]: value }));
+    commitRatings({ ...ratings, [current.id]: value });
   };
 
   const startRetest = () => {
     // Clear the hard ratings so these cards must be re-rated this round.
-    setRatings((prev) => {
-      const next = { ...prev };
-      hardIds.forEach((id) => delete next[id]);
-      return next;
-    });
+    const next = { ...ratings };
+    hardIds.forEach((id) => delete next[id]);
+    commitRatings(next);
     setDeckIds(hardIds);
     setIsRetest(true);
     goTo(0);
   };
 
   const restartAll = () => {
-    setRatings({});
+    commitRatings({});
     setDeckIds(allIds);
     setIsRetest(false);
     goTo(0);

@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { CircleCheck, CircleX, RotateCcw, RefreshCw, ListChecks } from "lucide-react";
 import "./Quiz.css";
+import "./QuizSaved.css";
 
 const LETTERS = ["A", "B", "C", "D"];
 
-// State resets when a new study set arrives because the parent passes a `key`.
-function Quiz({ questions }) {
+// State resets when a different session opens because the parent passes a `key`.
+function Quiz({ questions, savedProgress, onRoundComplete }) {
   const allIds = useMemo(() => questions.map((q) => q.id), [questions]);
   const byId = useMemo(
     () => Object.fromEntries(questions.map((q) => [q.id, q])),
@@ -18,6 +19,11 @@ function Quiz({ questions }) {
   const [selected, setSelected] = useState(null); // option picked but not yet submitted
   const [answers, setAnswers] = useState({}); // questionId -> { selected, correct }
   const [showResults, setShowResults] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // Saved incorrect questions from an earlier visit (ignoring ids that no longer exist).
+  const savedIncorrect = (savedProgress?.incorrectIds ?? []).filter((id) => byId[id]);
+  const savedScore = savedProgress?.fullScore ?? null;
 
   // Empty state: nothing to answer.
   if (questions.length === 0) {
@@ -50,6 +56,7 @@ function Quiz({ questions }) {
 
   const submit = () => {
     if (selected === null || isSubmitted) return;
+    setBannerDismissed(true);
     setAnswers((prev) => ({
       ...prev,
       [current.id]: { selected, correct: selected === current.correctAnswer },
@@ -58,6 +65,14 @@ function Quiz({ questions }) {
 
   const next = () => {
     if (isLast) {
+      // Round finished: report it so it can be saved.
+      onRoundComplete?.({
+        correct: correctCount,
+        total: deck.length,
+        percentage,
+        incorrectIds: wrongQuestions.map((q) => q.id),
+        isRetry,
+      });
       setShowResults(true);
       return;
     }
@@ -74,6 +89,14 @@ function Quiz({ questions }) {
       return nextAnswers;
     });
     setDeckIds(wrongIds);
+    setIsRetry(true);
+    resetPosition();
+  };
+
+  // Start a round with the questions missed in an earlier visit.
+  const practiceSaved = () => {
+    setBannerDismissed(true);
+    setDeckIds(savedIncorrect);
     setIsRetry(true);
     resetPosition();
   };
@@ -153,10 +176,27 @@ function Quiz({ questions }) {
   /* ---------- Question view ---------- */
 
   const chosen = isSubmitted ? answer.selected : selected;
+  const showBanner = !bannerDismissed && (savedScore || savedIncorrect.length > 0);
 
   return (
     <section className="quiz" aria-label="Quiz">
       {header}
+
+      {showBanner && (
+        <div className="quiz-saved">
+          <span>
+            {savedScore
+              ? `Last score: ${savedScore.percentage}% (${savedScore.correct}/${savedScore.total})`
+              : "Saved progress found"}
+          </span>
+          {savedIncorrect.length > 0 && (
+            <button type="button" className="secondary-button" onClick={practiceSaved}>
+              <RotateCcw size={16} />
+              Practice {savedIncorrect.length} missed
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="quiz-meta">
         <span>Question {index + 1} of {deck.length}</span>

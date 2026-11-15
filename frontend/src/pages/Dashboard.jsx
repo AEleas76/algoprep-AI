@@ -1,17 +1,47 @@
-import { Clock, Target, BookOpen } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Target, BookOpen, Layers } from "lucide-react";
 
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import TopicInput from "../components/TopicInput";
 import GenerationStatus from "../components/GenerationStatus";
+import SavedSessions from "../components/SavedSessions";
 import StudySession from "./StudySession";
 import { useStudyGenerator } from "../hooks/useStudyGenerator";
+import { useSavedSessions } from "../hooks/useSavedSessions";
+import { computeStats } from "../utils/stats";
 
 function Dashboard() {
-  const { status, data, error, generate, retry, cancel } = useStudyGenerator();
+  const { status, error, generate, retry, cancel } = useStudyGenerator();
+  const { sessions, addSession, saveRatings, recordQuizRound, removeSession } =
+    useSavedSessions();
+  const [activeId, setActiveId] = useState(null);
 
-  const handleGenerate = (topic, mode, difficulty) => {
-    generate({ topic, mode, difficulty });
+  const activeSession = sessions.find((s) => s.id === activeId) ?? null;
+  const stats = useMemo(() => computeStats(sessions), [sessions]);
+  const isLoading = status === "loading";
+
+  // A successful generation is saved immediately and opened.
+  const openNewSession = (data) => {
+    if (data) setActiveId(addSession(data));
+  };
+
+  const handleGenerate = async (topic, mode, difficulty) => {
+    openNewSession(await generate({ topic, mode, difficulty }));
+  };
+
+  const handleRetry = async () => {
+    openNewSession(await retry());
+  };
+
+  const handleOpen = (id) => {
+    cancel(); // clears any old error card
+    setActiveId(id);
+  };
+
+  const handleDelete = (id) => {
+    removeSession(id);
+    if (id === activeId) setActiveId(null);
   };
 
   return (
@@ -39,38 +69,51 @@ function Dashboard() {
 
             <div className="stat-card">
               <BookOpen size={23} />
-              <h3>0</h3>
+              <h3>{stats.topics}</h3>
               <p>Topics studied</p>
             </div>
 
             <div className="stat-card">
               <Target size={23} />
-              <h3>0%</h3>
+              <h3>{stats.accuracy === null ? "-" : `${stats.accuracy}%`}</h3>
               <p>Quiz accuracy</p>
             </div>
 
             <div className="stat-card">
-              <Clock size={23} />
-              <h3>0 hrs</h3>
-              <p>Study time</p>
+              <Layers size={23} />
+              <h3>{stats.easyCards}</h3>
+              <p>Cards rated easy</p>
             </div>
 
           </div>
 
           <TopicInput
             onGenerate={handleGenerate}
-            isLoading={status === "loading"}
+            isLoading={isLoading}
           />
 
           <GenerationStatus
             status={status}
             error={error}
-            onRetry={retry}
+            onRetry={handleRetry}
             onCancel={cancel}
           />
 
-          {status === "success" && data && (
-            <StudySession key={data.generatedAt} data={data} />
+          <SavedSessions
+            sessions={sessions}
+            activeId={activeId}
+            disabled={isLoading}
+            onOpen={handleOpen}
+            onDelete={handleDelete}
+          />
+
+          {activeSession && (
+            <StudySession
+              key={activeSession.id}
+              session={activeSession}
+              onRatingsChange={saveRatings}
+              onQuizRound={recordQuizRound}
+            />
           )}
 
         </div>
