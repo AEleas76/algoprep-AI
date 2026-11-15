@@ -1,0 +1,13 @@
+.study-session {
+  margin-top: 24px;
+}
+
+.study-session-header h2 {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.study-session-header p {
+  color: #94a3b8;
+  font-size: 14px;
+}

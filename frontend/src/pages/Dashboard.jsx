@@ -4,6 +4,7 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import TopicInput from "../components/TopicInput";
 import GenerationStatus from "../components/GenerationStatus";
+import StudySession from "./StudySession";
 import { useStudyGenerator } from "../hooks/useStudyGenerator";
 
 function Dashboard() {
@@ -68,25 +69,8 @@ function Dashboard() {
             onCancel={cancel}
           />
 
-          {/* TEMPORARY preview: replaced by StudySession in the next steps */}
           {status === "success" && data && (
-            <div className="request-preview">
-              <h3>{data.title}</h3>
-              <p>
-                {data.flashcards.length} flashcards, {data.quiz.length} quiz questions
-              </p>
-              <ul className="preview-list">
-                {data.flashcards.map((card) => (
-                  <li key={card.id}>{card.question}</li>
-                ))}
-                {data.quiz.map((q) => (
-                  <li key={q.id}>{q.question}</li>
-                ))}
-              </ul>
-              <small>
-                Interactive flashcards and quiz are coming in the next step.
-              </small>
-            </div>
+            <StudySession key={data.generatedAt} data={data} />
           )}
 
         </div>
