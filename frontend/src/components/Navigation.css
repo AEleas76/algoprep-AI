@@ -1,0 +1,66 @@
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Hidden on larger screens; shown in the mobile media query below. */
+.menu-button,
+.sidebar-close,
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .menu-button {
+    display: grid;
+    place-items: center;
+  }
+
+  .navbar-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .navbar-left .search-box {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .navbar-right {
+    margin-left: 12px;
+  }
+
+  /* The sidebar becomes a drawer when opened. */
+  .sidebar.sidebar-open {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    max-width: 85vw;
+    z-index: 50;
+    overflow-y: auto;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 8, 18, 0.65);
+    z-index: 40;
+  }
+
+  .sidebar-close {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 16px;
+    right: 14px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+  }
+}

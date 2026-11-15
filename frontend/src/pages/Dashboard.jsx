@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Target, BookOpen, Layers } from "lucide-react";
 
 import Sidebar from "../components/Sidebar";
@@ -16,10 +16,14 @@ function Dashboard() {
   const { sessions, addSession, saveRatings, recordQuizRound, removeSession } =
     useSavedSessions();
   const [activeId, setActiveId] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const activeSession = sessions.find((s) => s.id === activeId) ?? null;
   const stats = useMemo(() => computeStats(sessions), [sessions]);
   const isLoading = status === "loading";
+
+  const openMenu = useCallback(() => setMenuOpen(true), []);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   // A successful generation is saved immediately and opened.
   const openNewSession = (data) => {
@@ -47,13 +51,13 @@ function Dashboard() {
   return (
     <div className="dashboard-layout">
 
-      <Sidebar />
+      <Sidebar isOpen={menuOpen} onClose={closeMenu} />
 
       <main className="main-content">
 
-        <Navbar />
+        <Navbar onMenuClick={openMenu} />
 
-        <div className="dashboard-content">
+        <div className="dashboard-content" id="top">
 
           <div className="welcome-section">
             <div>
@@ -87,10 +91,12 @@ function Dashboard() {
 
           </div>
 
-          <TopicInput
-            onGenerate={handleGenerate}
-            isLoading={isLoading}
-          />
+          <div id="generate">
+            <TopicInput
+              onGenerate={handleGenerate}
+              isLoading={isLoading}
+            />
+          </div>
 
           <GenerationStatus
             status={status}
@@ -99,21 +105,25 @@ function Dashboard() {
             onCancel={cancel}
           />
 
-          <SavedSessions
-            sessions={sessions}
-            activeId={activeId}
-            disabled={isLoading}
-            onOpen={handleOpen}
-            onDelete={handleDelete}
-          />
+          <div id="saved">
+            <SavedSessions
+              sessions={sessions}
+              activeId={activeId}
+              disabled={isLoading}
+              onOpen={handleOpen}
+              onDelete={handleDelete}
+            />
+          </div>
 
           {activeSession && (
-            <StudySession
-              key={activeSession.id}
-              session={activeSession}
-              onRatingsChange={saveRatings}
-              onQuizRound={recordQuizRound}
-            />
+            <div id="study">
+              <StudySession
+                key={activeSession.id}
+                session={activeSession}
+                onRatingsChange={saveRatings}
+                onQuizRound={recordQuizRound}
+              />
+            </div>
           )}
 
         </div>
