@@ -321,6 +321,119 @@
   color: #a78bfa;
 }
 
+/* STEP 2: TOPIC OPTIONS, STATUS CARDS, PREVIEW LIST */
+
+.topic-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+
+.topic-options .mode-selector {
+  margin: 0;
+}
+
+.difficulty-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.difficulty-select select {
+  background: #10192c;
+  color: #c4b5fd;
+  border: 1px solid #33415c;
+  border-radius: 8px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.difficulty-select select:focus {
+  border-color: #8b5cf6;
+}
+
+.mode:disabled,
+.topic-card textarea:disabled,
+.difficulty-select select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 20px;
+  padding: 18px 20px;
+  border: 1px solid #33415c;
+  border-radius: 12px;
+  background: #151e33;
+}
+
+.status-card > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-card p {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.status-card svg {
+  flex-shrink: 0;
+  color: #a78bfa;
+}
+
+.status-error {
+  border-color: #7f1d1d;
+  background: #2a1620;
+}
+
+.status-error svg {
+  color: #f87171;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.secondary-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: transparent;
+  color: #cbd5e1;
+  border: 1px solid #33415c;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.secondary-button:hover {
+  border-color: #8b5cf6;
+  color: #c4b5fd;
+}
+
+.preview-list {
+  margin: 12px 0 0 18px;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
 /* RESPONSIVE DESIGN */
 
 @media (max-width: 850px) {
@@ -368,5 +481,9 @@
 
   .topic-card {
     padding: 18px;
+  }
+
+  .status-card {
+    flex-wrap: wrap;
   }
 }

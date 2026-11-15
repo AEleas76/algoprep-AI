@@ -1,15 +1,16 @@
-import { useState } from "react";
 import { Clock, Target, BookOpen } from "lucide-react";
 
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import TopicInput from "../components/TopicInput";
+import GenerationStatus from "../components/GenerationStatus";
+import { useStudyGenerator } from "../hooks/useStudyGenerator";
 
 function Dashboard() {
-  const [studyRequest, setStudyRequest] = useState(null);
+  const { status, data, error, generate, retry, cancel } = useStudyGenerator();
 
-  const handleGenerate = (topic, mode) => {
-    setStudyRequest({ topic, mode });
+  const handleGenerate = (topic, mode, difficulty) => {
+    generate({ topic, mode, difficulty });
   };
 
   return (
@@ -55,15 +56,35 @@ function Dashboard() {
 
           </div>
 
-          <TopicInput onGenerate={handleGenerate} />
+          <TopicInput
+            onGenerate={handleGenerate}
+            isLoading={status === "loading"}
+          />
 
-          {studyRequest && (
+          <GenerationStatus
+            status={status}
+            error={error}
+            onRetry={retry}
+            onCancel={cancel}
+          />
+
+          {/* TEMPORARY preview: replaced by StudySession in the next steps */}
+          {status === "success" && data && (
             <div className="request-preview">
-              <h3>Study request received!</h3>
-              <p>Topic: {studyRequest.topic}</p>
-              <p>Mode: {studyRequest.mode}</p>
+              <h3>{data.title}</h3>
+              <p>
+                {data.flashcards.length} flashcards, {data.quiz.length} quiz questions
+              </p>
+              <ul className="preview-list">
+                {data.flashcards.map((card) => (
+                  <li key={card.id}>{card.question}</li>
+                ))}
+                {data.quiz.map((q) => (
+                  <li key={q.id}>{q.question}</li>
+                ))}
+              </ul>
               <small>
-                AI integration will be connected in a later step.
+                Interactive flashcards and quiz are coming in the next step.
               </small>
             </div>
           )}
