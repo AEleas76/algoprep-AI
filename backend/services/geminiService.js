@@ -9,8 +9,12 @@ const {
   formatZodIssues,
 } = require("../schemas");
 
-const MAX_ATTEMPTS = 3; // retries cover malformed/empty output and transient 503s
+const MAX_ATTEMPTS = 3; // retries cover malformed/empty output, overloaded or hung upstream
 const RETRYABLE_CODES = new Set(["AI_BAD_RESPONSE", "AI_EMPTY_RESPONSE", "AI_UNAVAILABLE"]);
+
+// A single hung attempt must not use up the whole request budget, or the retry
+// and fallback model never get a turn. Each attempt gets its own limit.
+const attemptTimeoutMs = () => Number(process.env.AI_ATTEMPT_TIMEOUT_MS) || 25000;
 
 // Resolves after ms, or rejects early if the request is aborted (timeout / client left).
 const sleep = (ms, signal) =>
@@ -26,9 +30,9 @@ const sleep = (ms, signal) =>
     );
   });
 
-// Use the fallback model only after the primary reported it was overloaded.
+// Use the fallback model only after the primary was overloaded or too slow.
 function pickModel(lastError) {
-const primary = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+  const primary = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
   const fallback = process.env.GEMINI_FALLBACK_MODEL;
   return fallback && lastError?.code === "AI_UNAVAILABLE" ? fallback : primary;
 }
@@ -116,11 +120,19 @@ function buildResponseJsonSchema(mode) {
 /* ---------- Calling Gemini ---------- */
 
 function translateUpstreamError(err, signal) {
-  // Our own timeout / client-disconnect abort carries an AppError as its reason.
   if (signal?.aborted) {
-    return signal.reason instanceof AppError
-      ? signal.reason
-      : new AppError(499, "REQUEST_ABORTED", "The request was cancelled.");
+    const reason = signal.reason;
+
+    // Whole-request deadline or client disconnect (set in routes/generate.js).
+    if (reason instanceof AppError) return reason;
+
+    // Only this attempt timed out: treat it like an overloaded upstream so
+    // the next attempt can switch to the fallback model.
+    if (reason?.name === "TimeoutError") {
+      return new AppError(503, "AI_UNAVAILABLE", "The AI service is responding slowly. Please try again.");
+    }
+
+    return new AppError(499, "REQUEST_ABORTED", "The request was cancelled.");
   }
 
   const status = err?.status;
@@ -211,13 +223,20 @@ async function generateStudySet(input, signal) {
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const model = pickModel(lastError);
+
+    // Aborts on whichever comes first: the whole-request deadline / client
+    // leaving (parent `signal`), or this attempt's own time limit.
+    const attemptSignal = AbortSignal.any([signal, AbortSignal.timeout(attemptTimeoutMs())]);
+
     try {
-      const raw = await callGemini(ai, input, signal, model);
+      const raw = await callGemini(ai, input, attemptSignal, model);
       return buildStudySet(input, parseAiOutput(raw, input.mode));
     } catch (err) {
+      if (err instanceof AppError) {
+        console.warn(`Attempt ${attempt}/${MAX_ATTEMPTS} failed on ${model}: ${err.code}`);
+      }
       if (!(err instanceof AppError) || !RETRYABLE_CODES.has(err.code)) throw err;
       lastError = err;
-      console.warn(`Attempt ${attempt}/${MAX_ATTEMPTS} failed on ${model}: ${err.code}`);
 
       // Brief backoff for overloaded upstream; malformed output retries immediately.
       if (err.code === "AI_UNAVAILABLE" && attempt < MAX_ATTEMPTS) {
